@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+<title>Simple Blog System</title>
+
+<style>
+
+body{
+    font-family:Arial;
+    margin:0;
+    background:#f2f4f8;
+}
+
+.navbar{
+    background:#333;
+    padding:15px;
+}
+
+.navbar a{
+    color:white;
+    text-decoration:none;
+    margin-right:20px;
+    cursor:pointer;
+}
+
+.container{
+    width:70%;
+    margin:auto;
+    margin-top:30px;
+}
+
+.section{
+    display:none;
+}
+
+.active{
+    display:block;
+}
+
+.post{
+    background:white;
+    padding:20px;
+    margin-bottom:15px;
+    border-radius:5px;
+    box-shadow:0 2px 6px rgba(0,0,0,0.1);
+}
+
+.btn{
+    padding:8px 12px;
+    background:#007bff;
+    color:white;
+    text-decoration:none;
+    border-radius:4px;
+    border:none;
+    cursor:pointer;
+}
+
+.btn-success{
+    background:#28a745;
+}
+
+input, textarea{
+    width:100%;
+    padding:10px;
+    margin:10px 0 20px;
+    border:1px solid #ccc;
+    border-radius:4px;
+}
+
+form{
+    background:white;
+    padding:20px;
+    border-radius:6px;
+}
+
+.meta{
+    color:gray;
+}
+
+</style>
+
+<script>
+
+function showSection(id){
+
+    let sections=document.querySelectorAll(".section")
+
+    sections.forEach(section=>{
+        section.classList.remove("active")
+    })
+
+    document.getElementById(id).classList.add("active")
+}
+
+</script>
+
+</head>
+
+
+<body>
+
+<div class="navbar">
+
+<a onclick="showSection('home')">Home</a>
+<a onclick="showSection('create')">Create Post</a>
+
+</div>
+
+<div class="container">
+
+<!-- BLOG LIST -->
+
+<div id="home" class="section active">
+
+<h1>All Blog Posts</h1>
+
+<div class="post">
+<h2>My First Blog</h2>
+<p>This is a short preview of the blog...</p>
+
+<button class="btn" onclick="showSection('view')">Read More</button>
+<button class="btn" onclick="showSection('edit')">Edit</button>
+
+</div>
+
+<div class="post">
+<h2>Second Blog</h2>
+<p>Another blog preview text...</p>
+
+<button class="btn" onclick="showSection('view')">Read More</button>
+<button class="btn" onclick="showSection('edit')">Edit</button>
+
+</div>
+
+</div>
+
+
+<!-- CREATE POST -->
+
+<div id="create" class="section">
+
+<h1>Create Blog Post</h1>
+
+<form>
+
+<label>Title</label>
+<input type="text" placeholder="Enter blog title">
+
+<label>Content</label>
+<textarea rows="8" placeholder="Write your blog"></textarea>
+
+<button class="btn btn-success">Publish</button>
+
+</form>
+
+</div>
+
+
+<!-- EDIT POST -->
+
+<div id="edit" class="section">
+
+<h1>Edit Blog Post</h1>
+
+<form>
+
+<label>Title</label>
+<input type="text" value="My First Blog">
+
+<label>Content</label>
+<textarea rows="8">
+This is the existing blog content that can be edited.
+</textarea>
+
+<button class="btn btn-success">Update</button>
+
+</form>
+
+</div>
+
+
+<!-- VIEW BLOG -->
+
+<div id="view" class="section">
+
+<h1>My First Blog</h1>
+
+<p class="meta">Published on June 10, 2026</p>
+
+<p>
+This page displays the full content of the blog post. When a user clicks
+"Read More", the entire blog appears here.
+</p>
+
+</div>
+
+</div>
+
+</body>
+
+</html>

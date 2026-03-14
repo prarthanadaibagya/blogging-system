@@ -15,3 +15,6 @@ class BlogViewSet(viewsets.ModelViewSet):
     
     def perform_create(self, serializer):
         serializer.save(author=self.request.user)
+
+def blog(request):
+    return render(request, "blog.html")

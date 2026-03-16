@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+<title>Simple Blog System</title>
+
+<style>
+
+body{
+    font-family:Arial;
+    margin:0;
+    background:#f2f4f8;
+}
+
+.navbar{
+    background:#333;
+    padding:15px;
+}
+
+.navbar a{
+    color:white;
+    text-decoration:none;
+    margin-right:20px;
+    cursor:pointer;
+}
+
+.container{
+    width:70%;
+    margin:auto;
+    margin-top:30px;
+}
+
+.section{
+    display:none;
+}
+
+.active{
+    display:block;
+}
+
+.post{
+    background:white;
+    padding:20px;
+    margin-bottom:15px;
+    border-radius:5px;
+    box-shadow:0 2px 6px rgba(0,0,0,0.1);
+}
+
+.btn{
+    padding:8px 12px;
+    background:#007bff;
+    color:white;
+    text-decoration:none;
+    border-radius:4px;
+    border:none;
+    cursor:pointer;
+}
+
+.btn-success{
+    background:#28a745;
+}
+
+input, textarea{
+    width:100%;
+    padding:10px;
+    margin:10px 0 20px;
+    border:1px solid #ccc;
+    border-radius:4px;
+}
+
+form{
+    background:white;
+    padding:20px;
+    border-radius:6px;
+}
+
+.meta{
+    color:gray;
+}
+
+</style>
+
+
+
+</head>
+
+
+<body>
+
+<div class="navbar">
+
+<a onclick="showSection('home')">Home</a>
+<a onclick="showSection('create')" id="createLink" style="display:none">Create Post</a>
+<a onclick="showSection('login')">Login</a>
+<a onclick="showSection('register')">Register</a>
+<a onclick="logout()" id="logoutLink" style="display:none">Logout</a>
+
+</div>
+
+<div class="container">
+
+<!-- BLOG LIST -->
+
+<div id="home" class="section active">
+
+<h1>All Blog Posts</h1>
+</div>
+
+
+<!-- LOGIN -->
+<div id="login" class="section">
+
+<h1>Login</h1>
+
+<form>
+
+<label>Username</label>
+<input type="text" id="loginUsername">
+
+<label>Password</label>
+<input type="password" id="loginPassword">
+
+<button type="button" onclick="login()" class="btn btn-success">
+Login
+</button>
+
+</form>
+
+</div>
+
+
+<!-- REGISTER -->
+<div id="register" class="section">
+
+<h1>Register</h1>
+
+<form>
+
+<label>Username</label>
+<input type="text" id="registerUsername">
+
+<label>Email</label>
+<input type="email" id="registerEmail">
+
+<label>Password</label>
+<input type="password" id="registerPassword">
+
+<label>Confirm Password</label>
+<input type="password" id="registerConfirmPassword">
+
+<button type="button" onclick="registerUser()" class="btn btn-success">
+Register
+</button>
+
+</form>
+
+</div>
+
+
+<!-- CREATE POST -->
+
+<div id="create" class="section">
+
+<h1>Create Blog Post</h1>
+
+<form method="POST">
+
+{% csrf_token %}
+
+<label>Title</label>
+<input type="text" name="title" id="createTitle">
+
+<label>Content</label>
+<textarea rows="8" name="content" id="createContent"></textarea>
+
+<button type="button" onclick="createBlog()" class="btn btn-success">
+Publish
+</button>
+
+</form>
+
+
+</div>
+
+
+<!-- EDIT POST -->
+
+<div id="edit" class="section">
+
+<h1>Edit Blog Post</h1>
+
+<form>
+
+<label>Title</label>
+<input type="text" id="editTitle">
+
+<label>Content</label>
+<textarea rows="8" id="editContent"></textarea>
+
+<button type="button" onclick="updateBlog()" class="btn btn-success">
+Update
+</button>
+
+</form>
+
+</div>
+
+
+<!-- VIEW BLOG -->
+
+<div id="view" class="section">
+
+<h1>My First Blog</h1>
+
+<p class="meta">Published on June 10, 2026</p>
+
+<p>
+This page displays the full content of the blog post. When a user clicks
+"Read More", the entire blog appears here.
+</p>
+
+</div>
+
+</div>
+<script>
+
+function showSection(id){
+
+    let sections=document.querySelectorAll(".section")
+
+    sections.forEach(section=>{
+        section.classList.remove("active")
+    })
+
+    document.getElementById(id).classList.add("active")
+}
+
+let token = localStorage.getItem("token")
+let selectedBlogId = null
+let currentUser = null
+
+function setToken(value) {
+    token = value
+    if (value) {
+        localStorage.setItem("token", value)
+        document.getElementById("logoutLink").style.display = "inline-block"
+        document.getElementById("createLink").style.display = "inline-block"
+    } else {
+        localStorage.removeItem("token")
+        document.getElementById("logoutLink").style.display = "none"
+        document.getElementById("createLink").style.display = "none"
+    }
+}
+
+async function login() {
+    const username = document.getElementById("loginUsername").value
+    const password = document.getElementById("loginPassword").value
+
+    const res = await fetch("/api/login/", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({username, password}),
+    })
+
+    if (!res.ok) {
+        alert("Login failed")
+        return
+    }
+
+    const data = await res.json()
+    setToken(data.access_token)
+    await loadCurrentUser()
+    showSection("home")
+    loadBlogs()
+}
+
+async function registerUser() {
+    const username = document.getElementById("registerUsername").value
+    const email = document.getElementById("registerEmail").value
+    const password = document.getElementById("registerPassword").value
+    const confirmPassword = document.getElementById("registerConfirmPassword").value
+
+    if (password !== confirmPassword) {
+        alert("Passwords do not match")
+        return
+    }
+
+    const res = await fetch("/api/register/", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({username, email, password}),
+    })
+
+    if (!res.ok) {
+        const errorData = await res.json()
+        alert("Registration failed: " + JSON.stringify(errorData))
+        return
+    }
+
+    alert("Registered successfully! Please log in.")
+    showSection("login")
+}
+
+function logout() {
+    setToken(null)
+    currentUser = null
+    showSection("login")
+}
+
+async function loadCurrentUser() {
+    if (!token) {
+        currentUser = null
+        return
+    }
+
+    const res = await fetch("/api/protected/", {
+        headers: {"Authorization": "Bearer " + token},
+    })
+
+    if (!res.ok) {
+        currentUser = null
+        return
+    }
+
+    const data = await res.json()
+    currentUser = data.user
+}
+
+// LOAD BLOGS
+async function loadBlogs() {
+    if (!token) {
+        showSection("login")
+        return
+    }
+
+    let res = await fetch("/api/blogs/", {
+        credentials: "same-origin",
+        headers: {
+            "Authorization": "Bearer " + token,
+        },
+    })
+
+    if (!res.ok) {
+        alert("Unable to load blogs. Please login again.")
+        setToken(null)
+        showSection("login")
+        return
+    }
+
+    let data = await res.json()
+
+    let blogs = Array.isArray(data) ? data : data.results || []
+
+    let home = document.getElementById("home")
+    home.innerHTML = "<h1>All Blog Posts</h1>"
+
+    blogs.forEach(blog => {
+        const isMine = currentUser && blog.author_username === currentUser
+        home.innerHTML += `
+<div class="post">
+<h2>${blog.title}</h2>
+<p>${blog.content.substring(0,100)}</p>
+
+<button class="btn" onclick="viewBlog(${blog.id})">Read More</button>
+${isMine ? `<button class="btn" onclick="editBlog(${blog.id},'${blog.title}','${blog.content}')">Edit</button>` : ''}
+${isMine ? `<button class="btn" onclick="deleteBlog(${blog.id})">Delete</button>` : ''}
+</div>
+`
+    })
+}
+
+// CREATE BLOG
+async function createBlog() {
+    if (!token) {
+        showSection("login")
+        return
+    }
+
+    let title = document.getElementById("createTitle").value
+    let content = document.getElementById("createContent").value
+
+    const res = await fetch("/api/blogs/", {
+        method: "POST",
+        credentials: "same-origin",
+        headers: {
+            "Content-Type": "application/json",
+            "Authorization": "Bearer " + token,
+        },
+        body: JSON.stringify({title, content}),
+    })
+
+    if (!res.ok) {
+        let errorText
+        try {
+            const errorData = await res.json()
+            errorText = errorData.detail || JSON.stringify(errorData)
+        } catch {
+            errorText = await res.text()
+        }
+        alert("Failed to create blog (" + res.status + "): " + errorText)
+        console.error("Create blog failed", res.status, errorText)
+        return
+    }
+
+    alert("Blog Created")
+    loadBlogs()
+    showSection("home")
+}
+
+// VIEW BLOG
+async function viewBlog(id) {
+    if (!token) {
+        showSection("login")
+        return
+    }
+
+    let res = await fetch(`/api/blogs/${id}/`, {
+        credentials: "same-origin",
+        headers: {
+            "Authorization": "Bearer " + token,
+        },
+    })
+
+    let blog = await res.json()
+
+    selectedBlogId = id
+
+    let view = document.getElementById("view")
+
+    view.innerHTML = `
+<h1>${blog.title}</h1>
+<p>${blog.content}</p>
+`
+
+    showSection("view")
+}
+
+// EDIT BLOG
+function editBlog(id, title, content) {
+    selectedBlogId = id
+
+    document.getElementById("editTitle").value = title
+    document.getElementById("editContent").value = content
+
+    showSection("edit")
+}
+
+// UPDATE BLOG
+async function updateBlog() {
+    if (!token) {
+        showSection("login")
+        return
+    }
+
+    let title = document.getElementById("editTitle").value
+    let content = document.getElementById("editContent").value
+
+    const res = await fetch(`/api/blogs/${selectedBlogId}/`, {
+        method: "PUT",
+        credentials: "same-origin",
+        headers: {
+            "Content-Type": "application/json",
+            "Authorization": "Bearer " + token,
+        },
+        body: JSON.stringify({title, content}),
+    })
+
+    if (!res.ok) {
+        let errorText
+        try {
+            const errorData = await res.json()
+            errorText = errorData.detail || JSON.stringify(errorData)
+        } catch {
+            errorText = await res.text()
+        }
+        alert("Failed to update blog (" + res.status + "): " + errorText)
+        console.error("Update blog failed", res.status, errorText)
+        return
+    }
+
+    alert("Updated")
+    loadBlogs()
+    showSection("home")
+}
+
+// DELETE BLOG
+async function deleteBlog(id) {
+    if (!token) {
+        showSection("login")
+        return
+    }
+
+    const res = await fetch(`/api/blogs/${id}/`, {
+        method: "DELETE",
+        credentials: "same-origin",
+        headers: {
+            "Authorization": "Bearer " + token,
+        },
+    })
+
+    if (!res.ok) {
+        let errorText
+        try {
+            const errorData = await res.json()
+            errorText = errorData.detail || JSON.stringify(errorData)
+        } catch {
+            errorText = await res.text()
+        }
+        alert("Failed to delete blog (" + res.status + "): " + errorText)
+        console.error("Delete blog failed", res.status, errorText)
+        return
+    }
+
+    alert("Deleted")
+    loadBlogs()
+}
+
+async function init() {
+    if (token) {
+        document.getElementById("logoutLink").style.display = "inline-block"
+        document.getElementById("createLink").style.display = "inline-block"
+        await loadCurrentUser()
+        loadBlogs()
+    } else {
+        showSection("login")
+    }
+}
+
+window.onload = init
+
+</script>
+</body>
+
+</html>

@@ -9,9 +9,13 @@ class BlogViewSet(viewsets.ModelViewSet):
     serializer_class = PostSerializer
 
     def get_permissions(self):
-        if self.action in ['update','partial_update','destroy']:
+        # Anyone can view the list/detail of blogs.
+        # Authentication is required for creating/editing/deleting.
+        if self.action in ['update', 'partial_update', 'destroy']:
             return [permissions.IsAuthenticated(), IsAuthor()]
-        return [permissions.IsAuthenticated()]
+        if self.action == 'create':
+            return [permissions.IsAuthenticated()]
+        return [permissions.AllowAny()]
     
     def perform_create(self, serializer):
         serializer.save(author=self.request.user)
